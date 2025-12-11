@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奶酪云工具箱 | Cheese Cloud Tools</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Phosphor Icons 图标库 -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        cheese: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            300: '#fcd34d',
+                            400: '#fbbf24', // 主色
+                            500: '#f59e0b', // 深色
+                            600: '#d97706',
+                            900: '#78350f',
+                        },
+                        darkbg: {
+                            900: '#0f172a', // 主背景
+                            800: '#1e293b', // 侧边栏
+                            700: '#334155', // 边框/悬浮
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'slide-up': 'slideUp 0.4s ease-out',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .active-nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 60%;
+            width: 3px;
+            background-color: #fbbf24;
+            border-radius: 0 4px 4px 0;
+            box-shadow: 0 0 10px #fbbf24;
+        }
+
+        /* 模拟 PDF 页面选中效果 */
+        .pdf-page-selected {
+            border-color: #fbbf24;
+            box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.3);
+        }
+        .pdf-page-selected .check-icon {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-darkbg-900 text-slate-300 font-sans h-screen w-screen overflow-hidden flex selection:bg-cheese-500 selection:text-white">
+
+    <!-- 1. 左侧一级菜单 -->
+    <aside class="w-20 bg-darkbg-800 flex flex-col items-center py-6 border-r border-darkbg-700 z-20 flex-shrink-0 shadow-2xl">
+        <div class="mb-8 relative group cursor-pointer">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cheese-400 to-cheese-600 flex items-center justify-center shadow-lg shadow-cheese-500/20 transform group-hover:scale-105 transition-all duration-300 overflow-hidden">
+                <i class="ph-fill ph-cheese text-2xl text-white"></i> 
+            </div>
+            <span class="absolute left-14 top-1/2 -translate-y-1/2 bg-black text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-50">奶酪云</span>
+        </div>
+
+        <nav class="flex-1 w-full space-y-4">
+            <div onclick="switchCategory('image')" id="nav-image" class="group relative w-full flex items-center justify-center cursor-pointer active-nav-item">
+                <div class="w-10 h-10 rounded-xl bg-darkbg-700/50 group-hover:bg-cheese-500/20 text-cheese-400 flex items-center justify-center transition-all duration-300">
+                    <i class="ph ph-image text-2xl"></i>
+                </div>
+            </div>
+            <div onclick="switchCategory('pdf')" id="nav-pdf" class="group relative w-full flex items-center justify-center cursor-pointer">
+                <div class="w-10 h-10 rounded-xl group-hover:bg-darkbg-700 text-slate-400 group-hover:text-cheese-400 flex items-center justify-center transition-all duration-300">
+                    <i class="ph ph-file-pdf text-2xl"></i>
+                </div>
+            </div>
+            <div onclick="switchCategory('excel')" id="nav-excel" class="group relative w-full flex items-center justify-center cursor-pointer">
+                <div class="w-10 h-10 rounded-xl group-hover:bg-darkbg-700 text-slate-400 group-hover:text-cheese-400 flex items-center justify-center transition-all duration-300">
+                    <i class="ph ph-file-xls text-2xl"></i>
+                </div>
+            </div>
+        </nav>
+
+        <div class="mt-auto">
+             <div class="w-10 h-10 rounded-xl hover:bg-darkbg-700 text-slate-500 hover:text-white flex items-center justify-center transition-all cursor-pointer">
+                <i class="ph ph-gear text-2xl"></i>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 2. 中间二级菜单 -->
+    <div class="w-64 bg-darkbg-800/50 backdrop-blur-md border-r border-darkbg-700 flex flex-col z-10 flex-shrink-0 transition-all duration-300" id="secondary-sidebar">
+        <div class="h-20 flex items-center px-6 border-b border-darkbg-700/50">
+            <h2 class="text-xl font-semibold text-white tracking-wide" id="category-title">图片工具</h2>
+        </div>
+
+        <div class="p-4">
+            <div class="relative group">
+                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cheese-400 transition-colors"></i>
+                <input type="text" placeholder="搜索功能..." class="w-full bg-darkbg-900 border border-darkbg-700 text-sm text-slate-200 rounded-lg pl-9 pr-3 py-2.5 focus:outline-none focus:border-cheese-500/50 focus:ring-1 focus:ring-cheese-500/50 transition-all placeholder-slate-600">
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-3 pb-4 space-y-1" id="tool-list">
+            <!-- 动态生成内容 -->
+        </div>
+        
+        <div class="p-4 border-t border-darkbg-700/50 bg-darkbg-800/30">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-xs font-bold text-white shadow-inner">SV</div>
+                <div class="flex-1 overflow-hidden">
+                    <p class="text-xs font-medium text-white truncate">超级会员</p>
+                    <p class="text-[10px] text-slate-400 truncate">有效期至 2026-10</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 右侧大区域 -->
+    <main class="flex-1 bg-darkbg-900 relative flex flex-col h-full overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+            <div class="absolute -top-[10%] -right-[10%] w-[500px] h-[500px] bg-cheese-500/10 rounded-full blur-[100px]"></div>
+            <div class="absolute top-[20%] left-[10%] w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[80px]"></div>
+        </div>
+
+        <header class="h-20 flex items-center justify-between px-8 border-b border-darkbg-700/30 z-10 glass-panel bg-opacity-30 flex-shrink-0">
+            <div class="flex flex-col">
+                <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                    <span id="breadcrumb-category">首页</span>
+                    <i class="ph ph-caret-right"></i>
+                    <span id="breadcrumb-tool" class="text-cheese-400">控制台</span>
+                </div>
+                <h1 class="text-2xl font-bold text-white flex items-center gap-2 animate-slide-up" id="workspace-title">欢迎回来</h1>
+            </div>
+            
+            <div class="flex gap-3">
+                <button class="px-4 py-2 text-sm rounded-lg border border-darkbg-700 text-slate-300 hover:bg-darkbg-700 transition flex items-center gap-2">
+                    <i class="ph ph-clock-counter-clockwise"></i> 历史
+                </button>
+                <button class="px-4 py-2 text-sm rounded-lg bg-cheese-500 hover:bg-cheese-400 text-white shadow-lg shadow-cheese-500/20 transition transform hover:scale-105 flex items-center gap-2 font-medium">
+                    <i class="ph ph-export"></i> 导出
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 p-8 overflow-y-auto z-10 scroll-smooth" id="workspace-content">
+            <!-- 默认欢迎页 -->
+            <div class="h-full flex flex-col items-center justify-center text-center animate-fade-in">
+                <div class="w-32 h-32 mb-6 rounded-full bg-darkbg-800 border border-darkbg-700 flex items-center justify-center shadow-2xl relative">
+                    <div class="absolute inset-0 rounded-full bg-cheese-500/20 blur-xl animate-pulse-slow"></div>
+                    <i class="ph-duotone ph-cheese text-6xl text-cheese-400"></i>
+                </div>
+                <h2 class="text-3xl font-bold text-white mb-3">开始你的创作</h2>
+                <p class="text-slate-400 max-w-md mx-auto mb-8">
+                    从左侧选择一个工具。无论是压缩图片、拆分PDF还是处理数据，我们都能搞定。
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl">
+                     <div onclick="simulateClickTool('img-compress', 'image')" class="p-4 rounded-xl bg-darkbg-800/50 border border-darkbg-700 hover:border-cheese-500/50 hover:bg-darkbg-800 transition cursor-pointer group text-left">
+                        <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center mb-3 group-hover:scale-110 transition"><i class="ph ph-image-square text-xl"></i></div>
+                        <h3 class="text-white font-medium mb-1">图片压缩</h3>
+                        <p class="text-xs text-slate-500">智能无损压缩</p>
+                    </div>
+                    <div onclick="simulateClickTool('pdf-split', 'pdf')" class="p-4 rounded-xl bg-darkbg-800/50 border border-darkbg-700 hover:border-cheese-500/50 hover:bg-darkbg-800 transition cursor-pointer group text-left">
+                        <div class="w-10 h-10 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center mb-3 group-hover:scale-110 transition"><i class="ph ph-scissors text-xl"></i></div>
+                        <h3 class="text-white font-medium mb-1">PDF 拆分</h3>
+                        <p class="text-xs text-slate-500">提取特定页面</p>
+                    </div>
+                    <div onclick="simulateClickTool('img-convert', 'image')" class="p-4 rounded-xl bg-darkbg-800/50 border border-darkbg-700 hover:border-cheese-500/50 hover:bg-darkbg-800 transition cursor-pointer group text-left">
+                        <div class="w-10 h-10 rounded-lg bg-green-500/10 text-green-400 flex items-center justify-center mb-3 group-hover:scale-110 transition"><i class="ph ph-arrows-left-right text-xl"></i></div>
+                        <h3 class="text-white font-medium mb-1">格式转换</h3>
+                        <p class="text-xs text-slate-500">格式互转工具</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const toolsData = {
+            image: {
+                title: "图片工具",
+                items: [
+                    { id: "img-compress", name: "图片压缩", icon: "ph-arrows-in-line-horizontal", desc: "智能无损压缩" },
+                    { id: "img-convert", name: "格式转换", icon: "ph-arrows-left-right", desc: "JPG/PNG/WEBP" },
+                    { id: "img-watermark", name: "图片加水印", icon: "ph-stamp", desc: "批量添加水印" },
+                ]
+            },
+            pdf: {
+                title: "PDF 工具箱",
+                items: [
+                    { id: "pdf-split", name: "PDF 拆分", icon: "ph-scissors", desc: "提取指定页面" },
+                    { id: "pdf-merge", name: "PDF 合并", icon: "ph-files", desc: "多文件合并" },
+                    { id: "pdf-word", name: "PDF 转 Word", icon: "ph-microsoft-word-logo", desc: "保持排版转换" },
+                ]
+            },
+            excel: {
+                title: "Excel 表格",
+                items: [
+                    { id: "xls-view", name: "Excel 预览", icon: "ph-eye", desc: "在线查看表格" },
+                    { id: "xls-chart", name: "图表生成", icon: "ph-chart-bar", desc: "数据可视化" },
+                ]
+            }
+        };
+
+        let currentCategory = 'image';
+        let currentToolId = null;
+
+        document.addEventListener('DOMContentLoaded', () => { renderToolList('image'); });
+
+        function switchCategory(cat) {
+            currentCategory = cat;
+            document.querySelectorAll('.active-nav-item').forEach(el => {
+                el.classList.remove('active-nav-item');
+                el.querySelector('div').classList.remove('bg-darkbg-700/50', 'text-cheese-400');
+                el.querySelector('div').classList.add('text-slate-400');
+            });
+            const activeBtn = document.getElementById(`nav-${cat}`);
+            activeBtn.classList.add('active-nav-item');
+            activeBtn.querySelector('div').classList.replace('text-slate-400', 'text-cheese-400');
+            activeBtn.querySelector('div').classList.add('bg-darkbg-700/50');
+            document.getElementById('category-title').innerText = toolsData[cat].title;
+            renderToolList(cat);
+            const sidebar = document.getElementById('secondary-sidebar');
+            sidebar.classList.remove('opacity-100'); sidebar.classList.add('opacity-0');
+            setTimeout(() => { sidebar.classList.remove('opacity-0'); sidebar.classList.add('opacity-100'); }, 50);
+        }
+
+        function renderToolList(cat) {
+            const listContainer = document.getElementById('tool-list');
+            listContainer.innerHTML = '';
+            toolsData[cat].items.forEach(tool => {
+                const item = document.createElement('div');
+                item.className = `p-3 rounded-lg cursor-pointer transition-all duration-200 group hover:bg-darkbg-700/50 ${currentToolId === tool.id ? 'bg-darkbg-700 border-l-2 border-cheese-400' : ''}`;
+                item.onclick = () => selectTool(tool);
+                item.id = `tool-item-${tool.id}`;
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-md bg-darkbg-900 border border-darkbg-700 flex items-center justify-center text-slate-400 group-hover:text-cheese-400 group-hover:border-cheese-500/30 transition-colors">
+                            <i class="ph ${tool.icon} text-lg"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-medium text-slate-200 group-hover:text-white">${tool.name}</h4>
+                            <p class="text-[10px] text-slate-500 truncate w-32">${tool.desc}</p>
+                        </div>
+                    </div>`;
+                listContainer.appendChild(item);
+            });
+        }
+
+        function selectTool(tool) {
+            currentToolId = tool.id;
+            renderToolList(currentCategory);
+            const workspace = document.getElementById('workspace-content');
+            document.getElementById('breadcrumb-category').innerText = toolsData[currentCategory].title;
+            document.getElementById('breadcrumb-tool').innerText = tool.name;
+            document.getElementById('workspace-title').innerHTML = `${tool.name} <span class="text-sm font-normal text-slate-500 ml-2 bg-darkbg-800 px-2 py-0.5 rounded border border-darkbg-700">v2.1</span>`;
+            
+            workspace.innerHTML = `<div class="h-full flex items-center justify-center"><i class="ph ph-spinner animate-spin text-4xl text-cheese-400"></i></div>`;
+            setTimeout(() => {
+                let contentHTML = '';
+                // 现在所有功能都先生成头部，再生成各自独特的内容
+                if (tool.id === 'img-compress') contentHTML = renderCompressUI(tool);
+                else if (tool.id === 'img-convert') contentHTML = renderConvertUI(tool);
+                else if (tool.id === 'pdf-split') contentHTML = renderPDFSplitUI(tool);
+                else if (tool.id === 'pdf-merge') contentHTML = renderPDFMergeUI(tool);
+                else contentHTML = renderDefaultUI(tool);
+                
+                workspace.innerHTML = `<div class="animate-slide-up max-w-6xl mx-auto flex flex-col gap-6">${contentHTML}</div>`;
+            }, 300);
+        }
+
+        function simulateClickTool(toolId, cat) {
+            switchCategory(cat);
+            setTimeout(() => {
+                const tool = toolsData[cat].items.find(t => t.id === toolId);
+                if (tool) selectTool(tool);
+            }, 100);
+        }
+
+        // ==================== 统一的上传区域组件 ====================
+        function getUploadAreaHTML(toolName) {
+            return `
+                <div class="w-full h-52 border-2 border-dashed border-darkbg-700 rounded-2xl bg-darkbg-800/30 flex flex-col items-center justify-center hover:border-cheese-500/50 hover:bg-darkbg-800/50 transition-all cursor-pointer group relative overflow-hidden flex-shrink-0">
+                    <div class="absolute inset-0 bg-gradient-to-tr from-cheese-500/5 to-transparent opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                    <div class="z-10 flex flex-col items-center">
+                        <div class="w-14 h-14 rounded-full bg-darkbg-700 flex items-center justify-center mb-3 group-hover:scale-110 transition duration-300 shadow-lg">
+                            <i class="ph ph-cloud-arrow-up text-3xl text-cheese-400"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-white mb-1">点击或拖拽文件到此处</h3>
+                        <p class="text-sm text-slate-500">支持批量上传 (${toolName})</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        /* ==================== 1. 图片压缩 UI ==================== */
+        function renderCompressUI(tool) {
+            // 下方功能区：左侧预览，右侧设置
+            const specificContent = `
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+                    <!-- 预览区 -->
+                    <div class="lg:col-span-2 bg-darkbg-800/50 border border-darkbg-700 rounded-2xl p-4 flex items-center justify-center relative min-h-[300px]">
+                        <div class="text-center">
+                            <i class="ph ph-image text-5xl text-slate-600 mb-3"></i>
+                            <p class="text-slate-400 text-sm">上传图片后在此处预览效果</p>
+                        </div>
+                        <span class="absolute top-4 left-4 bg-black/50 text-white text-xs px-2 py-1 rounded backdrop-blur">原始预览</span>
+                    </div>
+                    
+                    <!-- 设置区 -->
+                    <div class="bg-darkbg-800 border border-darkbg-700 rounded-2xl p-6 h-fit">
+                        <h3 class="font-bold text-white mb-4 flex items-center gap-2"><i class="ph ph-sliders"></i> 压缩设置</h3>
+                        <div class="mb-6">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm text-slate-300">压缩强度</span>
+                                <span class="text-sm text-cheese-400 font-bold">75%</span>
+                            </div>
+                            <input type="range" class="w-full h-2 bg-darkbg-900 rounded-lg appearance-none cursor-pointer accent-cheese-500" value="75">
+                        </div>
+                        <button class="w-full py-3 bg-cheese-500 hover:bg-cheese-400 text-white rounded-xl font-bold shadow-lg shadow-cheese-500/20 flex items-center justify-center gap-2">
+                            <i class="ph ph-download-simple"></i> 开始压缩
+                        </button>
+                    </div>
+                </div>
+            `;
+            return getUploadAreaHTML(tool.name) + specificContent;
+        }
+
+        /* ==================== 2. 格式转换 UI ==================== */
+        function renderConvertUI(tool) {
+            const formats = ['JPG', 'PNG', 'WEBP', 'PDF', 'ICO'];
+            const specificContent = `
+                <div class="bg-darkbg-800/50 backdrop-blur border border-darkbg-700 rounded-2xl p-8 text-center mt-2">
+                    <h3 class="text-lg text-white mb-6">选择目标格式</h3>
+                    <div class="flex flex-wrap justify-center gap-4 mb-8">
+                        ${formats.map(fmt => `
+                            <label class="cursor-pointer">
+                                <input type="radio" name="format" class="peer sr-only" ${fmt === 'WEBP' ? 'checked' : ''}>
+                                <div class="px-6 py-3 rounded-xl border border-darkbg-600 bg-darkbg-900 text-slate-400 hover:bg-darkbg-700 peer-checked:bg-cheese-500 peer-checked:text-white peer-checked:border-cheese-500 peer-checked:shadow-lg transition-all text-sm font-medium">
+                                    ${fmt}
+                                </div>
+                            </label>
+                        `).join('')}
+                    </div>
+                    <div class="border-t border-darkbg-700 pt-6 flex justify-end">
+                        <button class="px-8 py-2.5 bg-white text-darkbg-900 rounded-lg font-bold hover:bg-slate-200 transition">开始转换</button>
+                    </div>
+                </div>
+            `;
+            return getUploadAreaHTML(tool.name) + specificContent;
+        }
+
+        /* ==================== 3. PDF 拆分 UI ==================== */
+        function renderPDFSplitUI(tool) {
+            let pagesHTML = '';
+            for(let i=1; i<=12; i++) {
+                pagesHTML += `
+                    <div class="relative group cursor-pointer" onclick="this.querySelector('.page-card').classList.toggle('pdf-page-selected')">
+                        <div class="page-card aspect-[1/1.4] bg-white rounded-lg border-2 border-transparent hover:shadow-lg transition-all relative overflow-hidden flex items-center justify-center">
+                            <div class="text-xs text-slate-400">Page ${i}</div>
+                            <div class="absolute inset-0 bg-cheese-500/10 hidden group-hover:block"></div>
+                            <div class="check-icon absolute top-2 right-2 w-5 h-5 bg-cheese-500 rounded-full flex items-center justify-center text-white text-xs opacity-0 transition-opacity shadow"><i class="ph-bold ph-check"></i></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const specificContent = `
+                <div class="flex flex-col h-full mt-2">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-white">选择页面</h3>
+                        <div class="flex gap-3">
+                            <button class="text-xs text-cheese-400 hover:text-cheese-300">全选</button>
+                            <button class="text-xs text-slate-400 hover:text-white">清空</button>
+                        </div>
+                    </div>
+                    <div class="bg-darkbg-800/30 border border-darkbg-700 rounded-2xl p-6 overflow-y-auto max-h-[400px]">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-6">
+                            ${pagesHTML}
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end">
+                         <button class="px-6 py-2 bg-cheese-500 hover:bg-cheese-400 text-white rounded-lg font-bold shadow-lg shadow-cheese-500/20">拆分选定页</button>
+                    </div>
+                </div>
+            `;
+            return getUploadAreaHTML(tool.name) + specificContent;
+        }
+
+        /* ==================== 4. PDF 合并 UI ==================== */
+        function renderPDFMergeUI(tool) {
+            const files = [
+                { name: '2023年度财务报表.pdf', size: '2.4 MB' },
+                { name: 'Q4 销售数据分析.pdf', size: '1.1 MB' },
+            ];
+            
+            const specificContent = `
+                <div class="mt-4">
+                    <h3 class="text-lg font-bold text-white mb-4">待合并文件列表 (可拖拽排序)</h3>
+                    <div class="space-y-3 mb-8">
+                        ${files.map(file => `
+                            <div class="bg-darkbg-800 border border-darkbg-700 rounded-lg p-3 flex items-center gap-4 hover:border-cheese-500/30 transition group">
+                                <div class="cursor-grab text-slate-600 hover:text-slate-300 px-2"><i class="ph ph-dots-six-vertical text-xl"></i></div>
+                                <div class="w-10 h-10 bg-red-500/10 rounded text-red-400 flex items-center justify-center"><i class="ph ph-file-pdf text-xl"></i></div>
+                                <div class="flex-1"><h4 class="text-sm text-slate-200 font-medium">${file.name}</h4><p class="text-xs text-slate-500">${file.size}</p></div>
+                                <button class="p-2 hover:bg-darkbg-700 rounded text-slate-400 hover:text-red-400"><i class="ph ph-trash"></i></button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="w-full py-3 bg-cheese-500 hover:bg-cheese-400 text-white rounded-xl font-bold text-lg shadow-lg shadow-cheese-500/20">合并为单个 PDF</button>
+                </div>
+            `;
+            return getUploadAreaHTML(tool.name) + specificContent;
+        }
+
+        /* ==================== 5. 默认 UI ==================== */
+        function renderDefaultUI(tool) {
+            return getUploadAreaHTML(tool.name);
+        }
+    </script>
+</body>
+</html>

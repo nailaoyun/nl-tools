@@ -1,0 +1,9 @@
+{
+  "output_directory": "D:/workers/project/ai/nly-tool/gen",
+  "auto_save_to_default": true,
+  "image_quality": 10,
+  "enable_lossless_compression": true,
+  "show_preview": true,
+  "animation_enabled": true,
+  "animation_duration": 300
+}
